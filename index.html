@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Kubik</title>
+    <script type="module">
+        import initShaderProgram from "./initShaderProgram.js";
+
+        const canvas = document.querySelector('canvas');
+        const gl = canvas.getContext('webgl2', {alpha: true, antialias: true});
+
+        const adjustSize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            gl.viewport(0, 0, canvas.width, canvas.height);
+        };
+        window.addEventListener('resize', adjustSize);
+        adjustSize();
+
+        (async (gl) => {
+            const numPoints = 500000;
+            const numComponents = 3;
+            const positions = new Float32Array(numPoints * numComponents);
+            for (let i = 0, len = positions.length; i < len; i += numComponents) {
+                positions[i] = .5 - Math.random();
+                positions[i + 1] = .5 - Math.random();
+                positions[i + 2] = .5 - Math.random();
+            }
+
+            const vertexShader = await (await fetch('vert.glsl')).text();
+            const fragmentShader = await (await fetch('frag.glsl')).text();
+            const shaderProgram = initShaderProgram(gl, vertexShader, fragmentShader);
+
+            const aPositionLocation = gl.getAttribLocation(shaderProgram, 'aPosition');
+            gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+            gl.enableVertexAttribArray(aPositionLocation);
+            gl.vertexAttribPointer(aPositionLocation, numComponents, gl.FLOAT, false, numComponents * 4, 0);
+            gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+            const uTimeLocation = gl.getUniformLocation(shaderProgram, 'uTime');
+
+            gl.clearColor(1, 1, 1, 1);
+            const animate = (time) => {
+                gl.clear(gl.COLOR_BUFFER_BIT);
+                gl.uniform1f(uTimeLocation, time * .0003);
+                gl.drawArrays(gl.POINTS, 0, numPoints);
+                requestAnimationFrame(animate);
+            }
+            animate(0);
+        })(gl);
+    </script>
+    <style>
+        canvas {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+        }
+    </style>
+</head>
+<body>
+<canvas></canvas>
+</body>
+</html>
